@@ -12,7 +12,7 @@ This plugin make that happen.
 
 ```
 plugins {
-    id("net.akehurst.kotlin.export-public") version("$version")
+    id("net.akehurst.kotlin.gradle.plugin.exportPublic") version("1.0.0")
 }
 ```
 

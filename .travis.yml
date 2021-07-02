@@ -1,12 +1,8 @@
 language: java
 
 before_install:
-  - cd net.akehurst.kotlin.kt2ts
+  - cd exportPublic
   - chmod +x gradlew
 
 script: ./gradlew clean build
-deploy:
-  provider: script
-  script: ./gradlew bintrayUpload -PbintrayUser=$BINTRAY_USER -PbintrayApiKey=$BINTRAY_KEY
-  on:
-    branch: master
+

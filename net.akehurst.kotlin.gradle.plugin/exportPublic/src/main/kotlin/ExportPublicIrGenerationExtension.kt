@@ -13,10 +13,14 @@ import org.jetbrains.kotlin.ir.builders.irCallConstructor
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
+import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.isSuspend
 import org.jetbrains.kotlin.ir.util.isTopLevelDeclaration
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 
 class ExportPublicIrGenerationExtension(
     private val messageCollector: MessageCollector
@@ -27,7 +31,6 @@ class ExportPublicIrGenerationExtension(
 
         val enumToSealedClass = object : IrElementTransformerVoid() {
             override fun visitClass(declaration: IrClass): IrStatement {
-                messageCollector.report(CompilerMessageSeverity.STRONG_WARNING,"look at ${declaration.name}")
                 return if (
                     declaration.visibility == DescriptorVisibilities.PUBLIC &&
                     declaration.isExpect.not()&&
@@ -38,10 +41,16 @@ class ExportPublicIrGenerationExtension(
                         ClassKind.ANNOTATION_CLASS -> super.visitClass(declaration) //cannot export enums
                         ClassKind.ENUM_CLASS -> super.visitClass(declaration) //cannot export enums
                         else -> {
-                            messageCollector.report(CompilerMessageSeverity.STRONG_WARNING,"Exporting ${declaration.name}")
-                            val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
-                            declaration.annotations += cc
-                            super.visitClass(declaration)
+                            val overloads = noOverloadedMethods(declaration)
+                            if (overloads.isEmpty()) {
+                                messageCollector.report(CompilerMessageSeverity.INFO, "Exporting ${declaration.fqNameWhenAvailable}")
+                                val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
+                                declaration.annotations += cc
+                                super.visitClass(declaration)
+                            } else {
+                                messageCollector.report(CompilerMessageSeverity.ERROR, "Will not export ${declaration.fqNameWhenAvailable} due to overloaded methods ${overloads.keys} - which could cause a call ambiguity in JavaScript")
+                                super.visitClass(declaration)
+                            }
                         }
                     }
                 } else {
@@ -58,8 +67,8 @@ class ExportPublicIrGenerationExtension(
                     declaration.isInline.not() &&
                     declaration.isSuspend.not()
                 ) {
-                    //val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
-                   // declaration.annotations = declaration.annotations + cc
+                    val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
+                    declaration.annotations = declaration.annotations + cc
                     super.visitFunction(declaration)
                 } else {
                     super.visitFunction(declaration)
@@ -68,6 +77,11 @@ class ExportPublicIrGenerationExtension(
 
         }
         moduleFragment.transform(enumToSealedClass, null)
+    }
+
+    private fun noOverloadedMethods(declaration: IrClass): Map<Name, List<IrSimpleFunction>> {
+        val nameGroups = declaration.functions.groupBy { it.name }
+        return nameGroups.filter { it.value.size!=1 }
     }
 
 }

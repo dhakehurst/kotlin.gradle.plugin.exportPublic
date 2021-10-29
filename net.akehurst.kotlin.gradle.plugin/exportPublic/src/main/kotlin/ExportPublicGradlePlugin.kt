@@ -4,8 +4,10 @@ import com.google.auto.service.AutoService
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
+import org.gradle.platform.base.Platform
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
@@ -13,10 +15,12 @@ import org.jetbrains.kotlin.compiler.plugin.CliOption
 import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
 import org.jetbrains.kotlin.compiler.plugin.ComponentRegistrar
 import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.CompilerConfigurationKey
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
 import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
+import org.jetbrains.kotlin.konan.file.File
 
 class ExportPublicGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
@@ -43,12 +47,12 @@ class ExportPublicGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
         val extension = project.extensions.getByType(ExportPublicGradlePluginExtension::class.java)
-        //return project.provider {
-        //    extension.forReflection.get().map {
-        //        SubpluginOption(key = "forReflection", value = it)
-        //    }
-        //}
-        return project.provider { emptyList() }
+        return project.provider {
+            listOf(
+                SubpluginOption(key = ExportPublicCommandLineProcessor.OPTION_exportPatterns, value = extension.exportPatterns.get().joinToString(separator = File.pathSeparator))
+            )
+        }
+        //return project.provider { emptyList() }
     }
 }
 
@@ -58,24 +62,26 @@ open class ExportPublicGradlePluginExtension(objects: ObjectFactory) {
         val NAME = "exportPublic"
     }
 
+    val exportPatterns = objects.listProperty(String::class.java)
+
 }
 
 @AutoService(CommandLineProcessor::class)
 class ExportPublicCommandLineProcessor : CommandLineProcessor {
     companion object {
-        //private const val OPTION_forReflection = "forReflection"
-        //val ARG_forReflection = CompilerConfigurationKey<String>(OPTION_forReflection)
+         const val OPTION_exportPatterns = "exportPatterns"
+        val ARG_exportPatterns = CompilerConfigurationKey<List<String>>(OPTION_exportPatterns)
     }
 
     override val pluginId: String = KotlinPluginInfo.KOTLIN_PLUGIN_ID
 
     override val pluginOptions: Collection<CliOption> = listOf(
-        //CliOption(
-        //    optionName = OPTION_forReflection,
-        //    valueDescription = "string",
-        //    description = "list of libraries for reflection access",
-        //    required = false,
-        //)
+        CliOption(
+            optionName = OPTION_exportPatterns,
+            valueDescription = "List<Glob-Pattern-String>",
+            description = "items with qualified name that match the pattern will be exported",
+            required = false,
+        )
     )
 
     override fun processOption(
@@ -84,7 +90,7 @@ class ExportPublicCommandLineProcessor : CommandLineProcessor {
         configuration: CompilerConfiguration
     ) {
         return when (option.optionName) {
-            //OPTION_forReflection -> configuration.put(ARG_forReflection, value)
+            OPTION_exportPatterns -> configuration.put(ARG_exportPatterns, value.split(File.pathSeparator).toList())
             else -> throw IllegalArgumentException("Unexpected config option ${option.optionName}")
         }
     }
@@ -92,18 +98,19 @@ class ExportPublicCommandLineProcessor : CommandLineProcessor {
 
 @AutoService(ComponentRegistrar::class)
 class KotlinxReflectComponentRegistrar(
-    private val defaultReflectionLibs: String
+    private val defaultExportPatterns: List<String>
 ) : ComponentRegistrar {
 
     @Suppress("unused") // Used by service loader
     constructor() : this(
-        defaultReflectionLibs = ""
+        defaultExportPatterns = emptyList()
     )
 
     override fun registerProjectComponents(project: MockProject, configuration: CompilerConfiguration) {
         val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
+        val exportPatterns = configuration.get(ExportPublicCommandLineProcessor.ARG_exportPatterns, defaultExportPatterns).filter { it.isNotBlank() }
 
-        IrGenerationExtension.registerExtension(project, ExportPublicIrGenerationExtension(messageCollector))
+        IrGenerationExtension.registerExtension(project, ExportPublicIrGenerationExtension(messageCollector,exportPatterns))
 
         //val enumToSealedClass = EnumToSealedClassIrGenerationExtension(messageCollector)
         //IrGenerationExtension.registerExtension(project, enumToSealedClass)

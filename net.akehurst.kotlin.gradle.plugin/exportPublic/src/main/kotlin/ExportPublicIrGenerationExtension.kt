@@ -49,7 +49,7 @@ class ExportPublicIrGenerationExtension(
                     (declaration.visibility == DescriptorVisibilities.PUBLIC || implementsPublicInterface(declaration))&&
                     declaration.isExpect.not() &&
                     declaration.isExternal.not() &&
-                    declaration.isInline.not() &&
+                    declaration.isValue.not() &&
                     declaration.isAnnotationClass.not() &&
                     declaration.isAnonymousObject.not() &&
                     declaration.isEnumClass.not() &&

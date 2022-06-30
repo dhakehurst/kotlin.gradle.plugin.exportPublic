@@ -22,8 +22,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 plugins {
-    kotlin("jvm") version("1.6.21") apply false //version must match version used by gradle, change also in gradle.properties
-    id("com.github.gmazzo.buildconfig") version("3.0.3") apply false
+    kotlin("jvm") version("1.7.0") apply false //version must match version used by gradle, change also in gradle.properties
+    id("com.github.gmazzo.buildconfig") version("3.1.0") apply false
 }
 
 allprojects {

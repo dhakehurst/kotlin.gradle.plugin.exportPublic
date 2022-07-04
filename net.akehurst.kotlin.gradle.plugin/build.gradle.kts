@@ -29,7 +29,7 @@ plugins {
 allprojects {
 
     val version_project: String by project
-    val group_project = "${rootProject.name}"
+    val group_project = rootProject.name
 
     group = group_project
     version = version_project

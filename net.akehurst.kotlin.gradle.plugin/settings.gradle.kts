@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 
+pluginManagement {
+    repositories {
+        mavenLocal {
+            content{
+                includeGroupByRegex("net\\.akehurst.+")
+            }
+        }
+        gradlePluginPortal()
+    }
+}
+
 rootProject.name = file(".").name
 
 fileTree(".") {

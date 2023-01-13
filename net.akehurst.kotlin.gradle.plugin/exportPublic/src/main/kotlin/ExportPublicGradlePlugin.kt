@@ -10,10 +10,7 @@ import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
-import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
-import org.jetbrains.kotlin.compiler.plugin.CliOption
-import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
-import org.jetbrains.kotlin.compiler.plugin.ComponentRegistrar
+import org.jetbrains.kotlin.compiler.plugin.*
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
@@ -38,7 +35,7 @@ class ExportPublicGradlePlugin : KotlinCompilerPluginSupportPlugin {
         version = KotlinPluginInfo.PROJECT_VERSION
     )
 
-    override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean = true
+    override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean = kotlinCompilation.name == KotlinCompilation.MAIN_COMPILATION_NAME
 
     override fun apply(target: Project) {
         val ext = target.extensions.create(ExportPublicGradlePluginExtension.NAME, ExportPublicGradlePluginExtension::class.java)
@@ -96,21 +93,23 @@ class ExportPublicCommandLineProcessor : CommandLineProcessor {
     }
 }
 
-@AutoService(ComponentRegistrar::class)
+@AutoService(CompilerPluginRegistrar::class)
 class KotlinxReflectComponentRegistrar(
     private val defaultExportPatterns: List<String>
-) : ComponentRegistrar {
+) : CompilerPluginRegistrar() {
 
     @Suppress("unused") // Used by service loader
     constructor() : this(
         defaultExportPatterns = emptyList()
     )
 
-    override fun registerProjectComponents(project: MockProject, configuration: CompilerConfiguration) {
-        val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
+    override val supportsK2: Boolean get() = TODO("not implemented")
+
+    override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
+        val messageCollector = configuration[CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY]!!//, MessageCollector.NONE)
         val exportPatterns = configuration.get(ExportPublicCommandLineProcessor.ARG_exportPatterns, defaultExportPatterns).filter { it.isNotBlank() }
 
-        IrGenerationExtension.registerExtension(project, ExportPublicIrGenerationExtension(messageCollector,exportPatterns))
+        IrGenerationExtension.registerExtension(ExportPublicIrGenerationExtension(messageCollector,exportPatterns))
 
         //val enumToSealedClass = EnumToSealedClassIrGenerationExtension(messageCollector)
         //IrGenerationExtension.registerExtension(project, enumToSealedClass)

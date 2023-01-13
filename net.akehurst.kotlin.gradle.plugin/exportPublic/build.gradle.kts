@@ -1,11 +1,38 @@
+import com.github.gmazzo.gradle.plugins.BuildConfigExtension
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
+
 plugins {
+    kotlin("jvm") version ("1.8.0") //version must match version used by gradle, change also in gradle.properties
+    id("com.github.gmazzo.buildconfig") version ("3.1.0")
     `java-gradle-plugin`
     `maven-publish`
-    id("com.gradle.plugin-publish") version "0.15.0"
-    kotlin("jvm")
-    kotlin("kapt")
+    signing
+    id("com.gradle.plugin-publish") version "1.0.0"
+    kotlin("kapt") version "1.8.0"
 }
 
+val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_8
+val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_8
+val jvmTargetVersion = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
+}
+configure<com.github.gmazzo.gradle.plugins.BuildConfigExtension> {
+    val now = Instant.now()
+    fun fBbuildStamp(): String = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")).format(now)
+    fun fBuildDate(): String = DateTimeFormatter.ofPattern("yyyy-MMM-dd").withZone(ZoneId.of("UTC")).format(now)
+    fun fBuildTime(): String = DateTimeFormatter.ofPattern("HH:mm:ss z").withZone(ZoneId.of("UTC")).format(now)
+
+    buildConfigField("String", "version", "\"${project.version}\"")
+    buildConfigField("String", "buildStamp", "\"${fBbuildStamp()}\"")
+    buildConfigField("String", "buildDate", "\"${fBuildDate()}\"")
+    buildConfigField("String", "buildTime", "\"${fBuildTime()}\"")
+}
 buildConfig {
     //val project = project(":kotlinx-gradle-plugin")
     packageName("${project.group}.${project.name}")
@@ -14,6 +41,15 @@ buildConfig {
     buildConfigField("String", "PROJECT_GROUP", "\"${project.group}\"")
     buildConfigField("String", "PROJECT_NAME", "\"${project.name}\"")
     buildConfigField("String", "PROJECT_VERSION", "\"${project.version}\"")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompilerOptions>>().configureEach {
+    compilerOptions {
+        languageVersion.set(kotlin_languageVersion)
+        apiVersion.set(kotlin_apiVersion)
+        jvmTarget.set(jvmTargetVersion)
+        freeCompilerArgs.add("-opt-in=org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi")
+    }
 }
 
 gradlePlugin {
@@ -30,17 +66,24 @@ pluginBundle {
     description = "Kotlin compiler plugin to 'JsExport' all public declarations"
     tags = listOf("JsExport", "kotlin", "javascript", "typescript", "kotlin-js", "kotlin-multiplatform")
 
-    plugins {
-        this.getByName(project.name) {
+    //plugins {
+    //    this.getByName(project.name) {
             // id is captured from java-gradle-plugin configuration
-            displayName = project.name
-        }
-    }
+    //        displayName = project.name
+    //    }
+    //}
 }
 
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable")
     implementation(kotlin("gradle-plugin-api"))
-    compileOnly("com.google.auto.service:auto-service:1.0-rc7")
-    kapt("com.google.auto.service:auto-service:1.0-rc7")
+    compileOnly("com.google.auto.service:auto-service:1.0.1")
+    kapt("com.google.auto.service:auto-service:1.0.1")
+    "implementation"(kotlin("test-junit"))
+}
+
+configure<SigningExtension> {
+    useGpgCmd()
+    val publishing = project.properties["publishing"] as PublishingExtension
+    sign(publishing.publications)
 }

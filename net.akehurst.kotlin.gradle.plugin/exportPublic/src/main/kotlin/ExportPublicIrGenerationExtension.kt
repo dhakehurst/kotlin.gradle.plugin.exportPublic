@@ -62,124 +62,104 @@ class ExportPublicIrGenerationExtension(
         //messageCollector.report(CompilerMessageSeverity.INFO, "JsExport class: ${jsExportSymbol.signature}")
 
         val exportVisitor = object : IrElementTransformerVoid() {
-            private fun checkType(declaration: IrClass, list: List<IrType>, message: String): Boolean {
-                return if (list.isEmpty()) {
-                    false
-                } else {
-                    val msg = "$message:" + list.joinToString(prefix = "\n", separator = "\n") { "  - ${it.getClass()?.kotlinFqName ?: it}" }
-                    messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Will not export ${declaration.kotlinFqName} because $msg:")
+            private val <E : IrAnnotationContainer> List<E>.asLineSeparatedString get() = this.joinToString(prefix = ":\n", separator = "\n") { "  - ${it.signatureString}" }
+
+            private fun checkIf(level: CompilerMessageSeverity, test: () -> Boolean, lazyMessage: () -> String): Boolean {
+                return if (test.invoke()) {
+                    messageCollector.report(level, lazyMessage.invoke())
                     true
+                } else {
+                    false
                 }
             }
 
-            private fun <T : IrDeclaration> checkDecl(declaration: IrClass, list: List<T>, message: String): Boolean {
-                return if (list.isEmpty()) {
-                    false
-                } else {
-                    val msg = "$message:" + list.joinToString(prefix = "\n", separator = "\n") { "  - ${it.signatureString}" }
-                    messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Will not export ${declaration.kotlinFqName} because $msg:")
-                    true
-                }
-            }
+            private fun checkIfStrong(test: () -> Boolean, lazyMessage: () -> String): Boolean = checkIf(CompilerMessageSeverity.STRONG_WARNING, test, lazyMessage)
+            private fun checkIfInfo(test: () -> Boolean, lazyMessage: () -> String): Boolean = checkIf(CompilerMessageSeverity.INFO, test, lazyMessage)
+            private fun checkIfLog(test: () -> Boolean, lazyMessage: () -> String): Boolean = checkIf(CompilerMessageSeverity.LOGGING, test, lazyMessage)
 
             override fun visitClass(declaration: IrClass): IrStatement {
-                messageCollector.report(CompilerMessageSeverity.INFO, "Checking for export: ${declaration.kotlinFqName}")
-                return if (
-                    noPatternsOrMatchesOn(declaration.kotlinFqName.asString(), exportPatternsRegex)
-                ) {
-                    when {
-                        declaration.isJsExport() -> {
-                            messageCollector.report(CompilerMessageSeverity.INFO, "Already marked for export: ${declaration.kotlinFqName}")
-                            super.visitClass(declaration)  // already exported
-                        }
+                messageCollector.report(CompilerMessageSeverity.LOGGING, "Checking for export: ${declaration.kotlinFqName}")
+                val msg = "Will not export ${declaration.kotlinFqName},"
+                return when {
+                    checkIfLog({ declaration.isPublic.not() }, { "$msg it is not a public function" }) -> super.visitClass(declaration)
+                    //checkIfLog({ declaration.isTopLevel.not() }, { "$msg it is not a top-level function" }) -> super.visitClass(declaration)
+                    checkIfInfo({ declaration.isJsExport() }, { "$msg it is already exported by annotation" }) -> super.visitClass(declaration)
+                    checkIfInfo(
+                        { noPatternsOrMatchesOn(declaration.kotlinFqName.asString(), exportPatternsRegex).not() },
+                        { "$msg it is not matched by the glob filter" }) -> super.visitClass(declaration)
 
-                        declaration.isPotentiallyExportable -> when {
-                            checkType(declaration, declaration.nonExportableSuperTypes, "it has superTypes that are not exportable") -> super.visitClass(declaration)
-                            checkDecl(declaration, declaration.nonExportableProperties, "it has properties that are not exportable") -> super.visitClass(declaration)
-                            checkDecl(declaration, declaration.nonExportableMethods, "it has methods (functions) that are not exportable") -> super.visitClass(declaration)
-                            checkDecl(declaration, declaration.overloadedMethods, "it has overloaded methods which could cause a call ambiguity in JavaScript") -> super.visitClass(
-                                declaration
-                            )
+                    checkIfStrong({ declaration.nonExportableSuperTypes.isNotEmpty() },
+                        { "$msg it has superTypes that are not exportable ${declaration.nonExportableSuperTypes.asLineSeparatedString}" })
+                    -> super.visitClass(declaration)
 
-                            else -> {
-                                messageCollector.report(CompilerMessageSeverity.INFO, "Exporting: ${declaration.kotlinFqName}")
-                                val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
-                                declaration.annotations += cc
-                                super.visitClass(declaration)
-                            }
-                        }
+                    checkIfStrong({ declaration.nonExportableProperties.isNotEmpty() },
+                        { "$msg it has properties that are not exportable ${declaration.nonExportableProperties.asLineSeparatedString}" })
+                    -> super.visitClass(declaration)
 
-                        else -> {
-                            messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Will not export ${declaration.kotlinFqName} it is not exportable")
-                            super.visitClass(declaration)
-                        }
+                    checkIfStrong({ declaration.nonExportableMethods.isNotEmpty() },
+                        { "$msg it has methods that are not exportable ${declaration.nonExportableMethods.asLineSeparatedString}" })
+                    -> super.visitClass(declaration)
+
+                    checkIfStrong({ declaration.overloadedMethods.isNotEmpty() },
+                        { "$msg it has overloaded methods which could cause a call ambiguity in JavaScript ${declaration.overloadedMethods.asLineSeparatedString}" })
+                    -> super.visitClass(declaration)
+
+                    else -> {
+                        messageCollector.report(CompilerMessageSeverity.INFO, "Exporting: ${declaration.kotlinFqName}")
+                        val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
+                        declaration.annotations += cc
+                        super.visitClass(declaration)
                     }
-                } else {
-                    // not interested in exporting this class
-                    messageCollector.report(CompilerMessageSeverity.INFO, "Not trying to export ${declaration.kotlinFqName}")
-                    super.visitClass(declaration)
                 }
             }
 
             override fun visitFunction(declaration: IrFunction): IrStatement {
-                return if (declaration.isTopLevel) {
-                    if (noPatternsOrMatchesOn(declaration.kotlinFqName.asString(), exportPatternsRegex)) {
-                        if (
-                            declaration.isJsExport().not() &&
-                            declaration.visibility == DescriptorVisibilities.PUBLIC &&
-                            declaration.isExpect.not() &&
-                            declaration.isExternal.not() &&
-                            declaration.isInline.not() &&
-                            declaration.isSuspend.not()
-                        ) {
-                            messageCollector.report(CompilerMessageSeverity.INFO, "Exporting: ${declaration.signatureString}")
-                            val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
-                            declaration.annotations = declaration.annotations + cc
-                            super.visitFunction(declaration)
-                        } else {
-                            messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Will not export ${declaration.signatureString} it is not exportable")
-                            super.visitFunction(declaration)
-                        }
-                    } else {
-                        // not interested in exporting this class
-                        messageCollector.report(CompilerMessageSeverity.INFO, "Not trying to export ${declaration.signatureString}")
+                messageCollector.report(CompilerMessageSeverity.LOGGING, "Checking for export: ${declaration.kotlinFqName}")
+                val msg = "Will not export ${declaration.kotlinFqName}, it is"
+                return when {
+                    checkIfLog({ declaration.isPublic.not() }, { "$msg not a public function" }) -> super.visitFunction(declaration)
+                    checkIfLog({ declaration.isTopLevel.not() }, { "$msg not a top-level function" }) -> super.visitFunction(declaration)
+                    checkIfInfo({ declaration.isJsExport() }, { "$msg already exported by annotation" }) -> super.visitFunction(declaration)
+                    checkIfInfo({ declaration.isExpect }, { "$msg an 'expect' function" }) -> super.visitFunction(declaration)
+                    checkIfInfo({ declaration.isExternal }, { "$msg an 'external' function" }) -> super.visitFunction(declaration)
+                    checkIfInfo({ declaration.isInline }, { "$msg an 'inline' function" }) -> super.visitFunction(declaration)
+                    checkIfInfo({ declaration.isSuspend }, { "$msg a 'suspend' function function" }) -> super.visitFunction(declaration)
+
+                    checkIfInfo(
+                        { noPatternsOrMatchesOn(declaration.kotlinFqName.asString(), exportPatternsRegex).not() },
+                        { "$msg not matched by the glob filter" }) -> super.visitFunction(declaration)
+
+                    else -> {
+                        messageCollector.report(CompilerMessageSeverity.INFO, "Exporting: ${declaration.signatureString}")
+                        val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
+                        declaration.annotations = declaration.annotations + cc
                         super.visitFunction(declaration)
                     }
-                } else {
-                    //not top-level
-                    super.visitFunction(declaration)
                 }
             }
 
             override fun visitProperty(declaration: IrProperty): IrStatement {
-                return if (declaration.isTopLevel) {
-                    if (noPatternsOrMatchesOn(declaration.kotlinFqName.asString(), exportPatternsRegex)) {
-                        if (
-                            declaration.isJsExport().not() &&
-                            declaration.visibility == DescriptorVisibilities.PUBLIC &&
-                            declaration.isExpect.not() &&
-                            declaration.isExternal.not() &&
-                            declaration.isExportable
-                        ) {
-                            messageCollector.report(CompilerMessageSeverity.INFO, "Exporting: ${declaration.signatureString}")
-                            val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
-                            declaration.annotations = declaration.annotations + cc
-                            super.visitProperty(declaration)
-                        } else {
-                            messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Will not export ${declaration.signatureString} it is not exportable")
-                            super.visitProperty(declaration)
-                        }
-                    } else {
-                        // not interested in exporting this class
-                        messageCollector.report(CompilerMessageSeverity.INFO, "Not trying to export TopLevel Property ${declaration.signatureString}")
+                messageCollector.report(CompilerMessageSeverity.LOGGING, "Checking for export: ${declaration.kotlinFqName}")
+                val msg = "Will not export ${declaration.kotlinFqName}, it is"
+                return when {
+                    checkIfLog({ declaration.isPublic.not() }, { "$msg not a public property" }) -> super.visitProperty(declaration)
+                    checkIfLog({ declaration.isTopLevel.not() }, { "$msg not a top-level property" }) -> super.visitProperty(declaration)
+                    checkIfInfo({ declaration.isJsExport() }, { "$msg already exported by annotation" }) -> super.visitProperty(declaration)
+                    checkIfInfo({ declaration.isExpect }, { "$msg an 'expect' property" }) -> super.visitProperty(declaration)
+                    checkIfInfo({ declaration.isExternal }, { "$msg an 'external' property" }) -> super.visitProperty(declaration)
+
+                    checkIfInfo(
+                        { noPatternsOrMatchesOn(declaration.kotlinFqName.asString(), exportPatternsRegex).not() },
+                        { "$msg not matched by the glob filter" }) -> super.visitProperty(declaration)
+
+                    else -> {
+                        messageCollector.report(CompilerMessageSeverity.INFO, "Exporting: ${declaration.signatureString}")
+                        val cc = DeclarationIrBuilder(pluginContext, declaration.symbol).irCallConstructor(jsExportSymbol, emptyList())
+                        declaration.annotations = declaration.annotations + cc
                         super.visitProperty(declaration)
                     }
-                } else {
-                    //not top-level
-                    super.visitProperty(declaration)
                 }
             }
-
         }
         moduleFragment.transform(exportVisitor, null)
 
@@ -202,21 +182,31 @@ class ExportPublicIrGenerationExtension(
 
     private val IrProperty.type: IrType get() = this.getter?.returnType ?: this.backingField?.type ?: error("property has no getter or backingField")
 
-    /**
-     * only exportable if there is a getter
-     */
     private val IrProperty.isExportable: Boolean
-        get() {
-            return this.type.isExportable
+        get() = try {
+            when {
+                this.isExpect -> false
+                this.isExternal -> false
+                else -> this.type.isExportable
+            }
+        } catch (t: Throwable) {
+            messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Exception in isExportable for property '${this.signatureString}': $t")
+            throw t
         }
 
+    private val IrDeclarationWithVisibility.isPublic: Boolean get() = this.visibility == DescriptorVisibilities.PUBLIC
     private val IrFunction.isExportable: Boolean
         get() = try {
-            this.returnType.isExportable && this.valueParameters.all { it.type.isExportable }
+            when {
+                this.isExpect -> false
+                this.isExternal -> false
+                else -> this.returnType.isExportable && this.valueParameters.all { it.type.isExportable }
+            }
         } catch (t: Throwable) {
             messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Exception in isExportable for method/function '${this.signatureString}': $t")
             throw t
         }
+
     private val IrClass.isPotentiallyExportable: Boolean
         get() {
             return when {
@@ -307,7 +297,7 @@ class ExportPublicIrGenerationExtension(
             this.isJavaType() -> false
             this.isException() -> false
             this.isRuntimeException() -> false
-            this.hasStarProjections -> false
+
             this.isUnit() -> true
             this.isEnum() -> true
             this.isThrowable() -> true
@@ -351,6 +341,7 @@ class ExportPublicIrGenerationExtension(
                     exportableCache[this] = true // top stop recursion
                     val exportable = when {
                         //this.isTypeParameter() -> true
+                        this.hasStarProjections -> false
                         this.isBuiltInExportable -> true
                         this.isJsExport() -> true
                         this.getRuntimeClass(irBuiltIns).isExportable -> true
@@ -362,30 +353,33 @@ class ExportPublicIrGenerationExtension(
             }
         }
 
-    private val IrType.hasStarProjections get()= when (this) {
-        is IrCapturedType -> {
-            this.arguments.any { it is IrStarProjection }
-        }
-            else -> false
-    }
-
-    private val IrDeclaration.signatureString
+    private val IrType.hasStarProjections
         get() = when (this) {
+            is IrSimpleType -> {
+                this.arguments.any { it is IrStarProjection }
+            }
+
+            else -> false
+        }
+
+    private val IrAnnotationContainer.signatureString
+        get() = when (this) {
+            is IrType -> this.getClass()?.kotlinFqName ?: this.toString()
             is IrProperty -> "${this.getter?.realOverrideTarget?.parent?.kotlinFqName}::${this.name.asString()}: ${this.getter?.returnType?.getClass()?.kotlinFqName?.asString()}"
             is IrFunction -> {
                 val owner = this.realOverrideTarget.parent.kotlinFqName
                 val fname = this.name.asString()
                 val params = this.valueParameters.joinToString {
                     val pn = it.name.asString()
-                    val pt = it.type.asString()
+                    val pt = it.type.classFqName?.shortName()?.asString() ?: it.type.asString()
                     val pnl = if (it.type.isNullable()) "?" else ""
                     "$pn:$pt$pnl"
                 }
-                val type = this.returnType.asString()
+                val type = this.returnType.classFqName?.shortName()?.asString() ?: this.returnType.asString()
                 "$owner::$fname($params):$type"
             }
 
-            else -> this.signatureString(true)
+            else -> this.toString()
         }
 
     private inline fun IrType.isTypeFromPackage(pkg: FqName, namePredicate: (Name) -> Boolean): Boolean {

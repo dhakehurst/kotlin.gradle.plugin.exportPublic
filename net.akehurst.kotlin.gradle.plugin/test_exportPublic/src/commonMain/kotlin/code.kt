@@ -4,13 +4,38 @@ import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlin.reflect.KClass
 
-class AClass
+class APublicClass {
+    class InnerClass
 
-object AObject
+}
 
-enum class AEnum { X,Y,Z }
+private class APrivateClass
+internal class AnInternalClass
+
+@JsExport
+class AlreadyExportedClass
+
+object AnObject
+
+enum class AnEnum { X,Y,Z }
+
 class EnumProp {
-    val e:AEnum? = null
+    val e:AnEnum? = null
+}
+
+interface NonExpSuperType: WithStarProjection
+
+interface NonExpProp {
+    val prop:Map<*, *>
+}
+
+interface NonExpMeth {
+    fun f():Map<*, *>
+}
+
+interface OverloadedMeths {
+    fun f()
+    fun f(i:Int)
 }
 
 typealias EnumValuesFunction = ()->Array<Enum<*>>
@@ -47,7 +72,7 @@ class WithListCollections {
     val mmap:MutableMap<Int,String> = mutableMapOf()
 }
 
-interface WithStart {
+interface WithStarProjection {
     val map: Map<*, *>
 }
 
@@ -56,7 +81,10 @@ interface WithTypeParameter<T> {
    fun f(arg:T)
    fun f2():T
 }
-/*
+
+expect fun expectedFunction()
+
+
 interface ExportableMap<K, V> {
     val size: Int
 
@@ -81,4 +109,3 @@ object KotlinxReflect {
         TODO()
     }
 }
-*/

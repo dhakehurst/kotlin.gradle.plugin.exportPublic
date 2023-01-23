@@ -3,10 +3,10 @@ package test.exportPublic
 import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
 
 class APublicClass {
     class InnerClass
-
 }
 
 private class APrivateClass
@@ -23,10 +23,18 @@ class EnumProp {
     val e:AnEnum? = null
 }
 
+class WithNullableProp {
+    val name:String?=null
+}
+
 interface NonExpSuperType: WithStarProjection
 
 interface NonExpProp {
     val prop:Map<*, *>
+}
+
+class NonExpPrivateProp {
+    private val prop:Map<*, *>? = null
 }
 
 interface NonExpMeth {
@@ -38,6 +46,11 @@ interface OverloadedMeths {
     fun f(i:Int)
 }
 
+class OverloadedPrivateMeths {
+    private fun f() {}
+    private fun f(i:Int) {}
+}
+
 typealias EnumValuesFunction = ()->Array<Enum<*>>
 
 class AException : Exception()
@@ -45,6 +58,33 @@ class AException : Exception()
 class ARuntimeException : RuntimeException()
 
 class AThrowable: Throwable()
+
+abstract class AnAbstractClass
+
+abstract class WithAbstractProp {
+    abstract val x:Int
+}
+
+class WithInternalProperty {
+    val pubProp:Int = 1
+    internal val internalProp:Int = 1
+}
+
+class WithPropKFunctionStar {
+    val prop: KFunction<*> get() = TODO()
+}
+
+interface WithKClassStar {
+    val prop:KClass<*>
+}
+
+interface WithKClassAny {
+    val prop:KClass<Any>
+}
+
+interface WithKClassT<T:Any> {
+    val prop:KClass<T>
+}
 
 interface IA {
     val prop:String
@@ -84,7 +124,15 @@ interface WithTypeParameter<T> {
 
 expect fun expectedFunction()
 
+fun WithTypeParameter<*>.functionWithNonExportableExtensionReceiverParameter():Boolean {
+    TODO()
+}
 
+fun functionWithNonExportableParameter(cls:WithTypeParameter<*>):Boolean {
+    TODO()
+}
+
+//-----------------------------------
 interface ExportableMap<K, V> {
     val size: Int
 
@@ -96,6 +144,8 @@ interface ExportableMap<K, V> {
     //@JsName("get")
     //operator fun get(key: K): V//?
 }
+
+
 
 object KotlinxReflect {
 

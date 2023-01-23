@@ -13,10 +13,7 @@ import org.jetbrains.kotlin.com.intellij.mock.MockProject
 import org.jetbrains.kotlin.compiler.plugin.*
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
-import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
-import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
-import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
-import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
+import org.jetbrains.kotlin.gradle.plugin.*
 import org.jetbrains.kotlin.konan.file.File
 
 class ExportPublicGradlePlugin : KotlinCompilerPluginSupportPlugin {
@@ -35,7 +32,9 @@ class ExportPublicGradlePlugin : KotlinCompilerPluginSupportPlugin {
         version = KotlinPluginInfo.PROJECT_VERSION
     )
 
-    override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean = kotlinCompilation.name == KotlinCompilation.MAIN_COMPILATION_NAME
+    override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean =
+        kotlinCompilation.name == KotlinCompilation.MAIN_COMPILATION_NAME &&
+                kotlinCompilation.target.platformType ==  KotlinPlatformType.js
 
     override fun apply(target: Project) {
         val ext = target.extensions.create(ExportPublicGradlePluginExtension.NAME, ExportPublicGradlePluginExtension::class.java)

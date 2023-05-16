@@ -27,7 +27,7 @@ class WithNullableProp {
     val name:String?=null
 }
 
-interface NonExpSuperType: WithStarProjection
+interface NonExpSuperType: WithStarProjectionProperty
 
 interface NonExpProp {
     val prop:Map<*, *>
@@ -112,8 +112,17 @@ class WithListCollections {
     val mmap:MutableMap<Int,String> = mutableMapOf()
 }
 
-interface WithStarProjection {
+
+interface WithStarProjectionProperty {
     val map: Map<*, *>
+}
+
+interface WithStarProjectionFuncParam {
+    fun func(map: Map<*, *>)
+}
+
+interface WithStarProjectionTypeParamFuncParam {
+    fun func(map: Map<KClass<*>, KFunction<*>>)
 }
 
 interface WithTypeParameter<T> {
@@ -144,8 +153,6 @@ interface ExportableMap<K, V> {
     //@JsName("get")
     //operator fun get(key: K): V//?
 }
-
-
 
 object KotlinxReflect {
 

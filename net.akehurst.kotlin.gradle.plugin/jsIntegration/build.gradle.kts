@@ -10,7 +10,6 @@ plugins {
     `maven-publish`
     signing
     id("com.gradle.plugin-publish") version "1.1.0"
-    kotlin("kapt") version "1.8.21"
 }
 
 val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_8
@@ -33,14 +32,12 @@ configure<com.github.gmazzo.gradle.plugins.BuildConfigExtension> {
     buildConfigField("String", "buildDate", "\"${fBuildDate()}\"")
     buildConfigField("String", "buildTime", "\"${fBuildTime()}\"")
 }
-buildConfig {
-    //val project = project(":kotlinx-gradle-plugin")
-    packageName("${project.group}.${project.name}")
-    className("KotlinPluginInfo")
-    buildConfigField("String", "KOTLIN_PLUGIN_ID", "\"${project.group}.${project.name}\"")
-    buildConfigField("String", "PROJECT_GROUP", "\"${project.group}\"")
-    buildConfigField("String", "PROJECT_NAME", "\"${project.name}\"")
-    buildConfigField("String", "PROJECT_VERSION", "\"${project.version}\"")
+
+val version_kotlin:String by project
+dependencies {
+    implementation(kotlin("gradle-plugin-api"))
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$version_kotlin") //version must match version used by gradle
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompilerOptions>>().configureEach {
@@ -58,21 +55,12 @@ gradlePlugin {
     plugins {
         create(project.name) {
             id = "${project.group}.${project.name}"
-            implementationClass = "${project.group}.${project.name}.ExportPublicGradlePlugin"
+            implementationClass = "${project.group}.${project.name}.JsIntegrationGradlePlugin"
             displayName = project.name
-            description = "Kotlin compiler plugin to 'JsExport' all public declarations"
-            tags.set(listOf("JsExport", "kotlin", "javascript", "typescript", "kotlin-js", "kotlin-multiplatform"))
+            description = "Gradle plugin enable use of Kotlin's node/yarn infrastructure for building "
+            tags.set(listOf("kotlin", "javascript", "typescript", "kotlin-js", "kotlin-multiplatform", "node", "yarn"))
         }
     }
-}
-
-
-dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable")
-    implementation(kotlin("gradle-plugin-api"))
-    compileOnly("com.google.auto.service:auto-service:1.0.1")
-    kapt("com.google.auto.service:auto-service:1.0.1")
-    "implementation"(kotlin("test-junit"))
 }
 
 configure<SigningExtension> {

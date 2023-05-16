@@ -3,7 +3,6 @@ package net.akehurst.kotlin.gradle.plugin.exportPublic
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
-import org.jetbrains.kotlin.backend.jvm.codegen.anyTypeArgument
 import org.jetbrains.kotlin.backend.wasm.ir2wasm.allSuperInterfaces
 import org.jetbrains.kotlin.backend.wasm.ir2wasm.getRuntimeClass
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
@@ -11,24 +10,17 @@ import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrStatement
-import org.jetbrains.kotlin.ir.backend.js.utils.asString
 import org.jetbrains.kotlin.ir.backend.js.utils.isJsExport
 import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
-import org.jetbrains.kotlin.ir.backend.jvm.serialization.JvmIrMangler.signatureString
 import org.jetbrains.kotlin.ir.builders.irCallConstructor
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.types.*
-import org.jetbrains.kotlin.ir.types.impl.IrCapturedType
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.argumentsCount
-import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.getArguments
-import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.isCapturedType
-import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.isStarProjection
 
 
 class ExportPublicIrGenerationExtension(
@@ -372,6 +364,7 @@ class ExportPublicIrGenerationExtension(
                         this.hasStarProjections -> false
                         this.isBuiltInExportable -> true
                         this.isJsExport() -> true
+                        this.isDynamic() -> true
                         this.getRuntimeClass(irBuiltIns).isExportable -> true
                         else -> false
                     }
@@ -381,10 +374,16 @@ class ExportPublicIrGenerationExtension(
             }
         }
 
-    private val IrType.hasStarProjections
+    private val IrType.hasStarProjections:Boolean
         get() = when (this) {
             is IrSimpleType -> {
-                this.arguments.any { it is IrStarProjection }
+                this.arguments.any {
+                    when(it) {
+                        is IrStarProjection -> true
+                        is IrTypeProjection -> it.type.hasStarProjections
+                        else -> error("Unsupported subtype of IrTypeArgument")
+                    }
+                }
             }
 
             else -> false
@@ -464,6 +463,7 @@ class ExportPublicIrGenerationExtension(
     fun IrType.isOneOfCollectionTypes(): Boolean = isCollection() || isList() || isSet() || isMap()
     fun IrType.isOneOfMutableCollectionTypes(): Boolean = isMutableCollection() || isMutableList() || isMutableSet() || isMutableMap()
     fun IrType.isKClass(): Boolean = isTypeFromPackage(kotlinReflectPackageFqn) { name -> name.asString() == "KClass" }
+    fun IrType.isDynamic(): Boolean = this is IrDynamicType
 
     val IrProperty.kotlinFqName: FqName get() = this.parent.kotlinFqName.child(this.name)
 }

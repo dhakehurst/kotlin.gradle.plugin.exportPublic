@@ -24,6 +24,7 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.tasks.Exec
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinUsages
+import org.jetbrains.kotlin.gradle.targets.js.KotlinJsCompilerAttribute
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsSetupTask
 import org.jetbrains.kotlin.gradle.targets.js.yarn.*
 
@@ -52,6 +53,20 @@ open class JsIntegrationGradlePluginExtension(project: Project, objects: ObjectF
 
     val nodeModulesDirectory = objects.directoryProperty()
 
+    /**
+     * name of the kotlin js target for this module [default 'js']
+     */
+    val jsTargetName = objects.property(String::class.java)
+
+    /**
+     * whether to use production build or not
+     */
+    val production = objects.property(Boolean::class.java)
+
+    val productionCommand = objects.property(String::class.java)
+
+    val developmentCommand = objects.property(String::class.java)
+
     init {
         // node build configuration
         this.nodeModuleConfigurationName.convention("nodeModule")
@@ -59,9 +74,10 @@ open class JsIntegrationGradlePluginExtension(project: Project, objects: ObjectF
         this.nodeModulesDirectory.convention(this.nodeSrcDirectory.map { it.dir("node_modules") })
         //this.kotlinStdlibJsDirectory.convention(this.nodeModulesDirectory.map { it.dir("kotlin") })
         this.nodeBuildCommand.convention(listOf("run", "build", "--outputPath=${this.nodeOutDirectory.get()}/dist"))
-
+        this.jsTargetName.convention("js")
         //this.overwrite.convention(true)
         //this.localOnly.convention(true)
+        this.production.convention(false)
     }
 }
 
@@ -70,11 +86,14 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
         project.pluginManager.apply(BasePlugin::class.java)
 
         val ext = project.extensions.create<JsIntegrationGradlePluginExtension>(JsIntegrationGradlePluginExtension.NAME, JsIntegrationGradlePluginExtension::class.java, project)
+        val jsTargetName = ext.jsTargetName.get()
 
         val nodeKotlinConfig = project.configurations.create(ext.nodeModuleConfigurationName.get()) {
+            //it.extendsFrom(project.configurations.getByName("${jsTargetName}MainImplementation"))
             it.attributes {
                 it.attribute(KotlinPlatformType.attribute, KotlinPlatformType.js)
                 it.attribute(Usage.USAGE_ATTRIBUTE, project.objects.named(Usage::class.java, KotlinUsages.KOTLIN_RUNTIME))
+                it.attribute(KotlinJsCompilerAttribute.jsCompilerAttribute,KotlinJsCompilerAttribute.ir)
             }
         }
 
@@ -82,24 +101,36 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
             if (ext.nodeSrcDirectory.isPresent) {
                 val nodeSrcDir = project.file(ext.nodeSrcDirectory.get())
                 val nodeOutDir = project.file(ext.nodeOutDirectory.get())
+                val isProduction = ext.production.get()
+                val compileTaskName = when(isProduction) {
+                    true -> "compileProductionLibraryKotlinJs"  //TODO: construct task name, JS name
+                    false -> "compileDevelopmentLibraryKotlinJs"
+                }
                 val cmds = ext.nodeBuildCommand.get()
                 val kotlinYarnSetup = project.yarn.yarnSetupTaskProvider.get()
+                val prodCommand = ext.productionCommand.get().split(Regex("\\s+")).toTypedArray()
+                val devCommand = ext.developmentCommand.get().split(Regex("\\s+")).toTypedArray()
                 kotlinYarnSetup.setup()
                 val yarn = kotlinYarnSetup.destination.resolve("bin/yarn")
                 // use yarn to install the node_modules required by the node code
-                project.tasks.create("yarnInstallAll", Exec::class.java) { exec ->
+                val yarnInstallAllTask = project.tasks.create("yarnInstallAll", Exec::class.java) { exec ->
+                    exec.dependsOn(nodeKotlinConfig, compileTaskName)
                     exec.group = "nodejs"
                     //exec.dependsOn(NodeJsSetupTask.NAME, YarnSetupTask.NAME)
                     exec.workingDir = nodeSrcDir
                     val args = listOf(yarn, "add", "all", "--outputPath=${nodeOutDir}")
                     exec.commandLine(args)
                 }
-                project.tasks.create(UnpackJsModulesTask.NAME, UnpackJsModulesTask::class.java) { tsk ->
-                    tsk.dependsOn(nodeKotlinConfig, "yarnInstallAll")
-                    //tsk.moduleNameMap.set(ext.moduleNameMap)
-                    tsk.nodeModulesDirectory.set(ext.nodeModulesDirectory)
-                    tsk.unpackConfigurationName.set(ext.nodeModuleConfigurationName)
-                    //tsk.excludeModules.set(ext.excludeModules)
+                project.tasks.create("jsIntegrationBuild", Exec::class.java) { exec ->
+                    exec.group = "nodejs"
+                    exec.dependsOn(":kotlinNodeJsSetup")
+                    exec.dependsOn(yarnInstallAllTask)
+                    exec.workingDir = nodeSrcDir
+                    if (isProduction) {
+                        exec.commandLine(yarn,*prodCommand)
+                    } else {
+                        exec.commandLine(yarn,*devCommand)
+                    }
                 }
             }
         }

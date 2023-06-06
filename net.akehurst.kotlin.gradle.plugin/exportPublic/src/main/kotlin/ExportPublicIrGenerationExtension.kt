@@ -211,11 +211,11 @@ class ExportPublicIrGenerationExtension(
                 this.isExpect -> false
                 this.isExternal -> false
                 this.isInline -> false
-                this.isSuspend -> false
-                this.returnType.isExportable.not() -> false
+                //this.isSuspend -> false
+                //this.returnType.isExportable.not() -> false
                 null != this.dispatchReceiverParameter && this.dispatchReceiverParameter!!.type.isExportable.not() -> false
                 null != this.extensionReceiverParameter && this.extensionReceiverParameter!!.type.isExportable.not() -> false
-                else -> this.valueParameters.all { it.type.isExportable }
+                else -> true //this.valueParameters.all { it.type.isExportable }
             }
         } catch (t: Throwable) {
             messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "Exception in isExportable for method/function '${this.signatureString}': $t")
@@ -366,7 +366,7 @@ class ExportPublicIrGenerationExtension(
                         this.isJsExport() -> true
                         this.isDynamic() -> true
                         this.getRuntimeClass(irBuiltIns).isExportable -> true
-                        else -> false
+                        else -> true //false
                     }
                     exportableCache[this] = exportable
                     exportable

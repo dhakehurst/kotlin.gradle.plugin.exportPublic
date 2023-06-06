@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory
 open class UnpackJsModulesTask : DefaultTask() {
 
     companion object {
-        val NAME = "unpackKotlinJs"
+        val NAME = "kotlinJsDependenciesToNodeModules"
         private val LOGGER = LoggerFactory.getLogger(UnpackJsModulesTask::class.java)
     }
 
@@ -89,10 +89,13 @@ open class UnpackJsModulesTask : DefaultTask() {
     internal fun exec() {
         val cnfName = unpackConfigurationName.get()
         val cnf = this.project.configurations.findByName(cnfName) ?: throw RuntimeException("Cannot find $cnfName configuration")
-        cnf.resolvedConfiguration.resolvedArtifacts.forEach { dep ->
+    val srcDir = project.tasks.getByName("compileProductionLibraryKotlinJs").outputs.files.first()
+
+    cnf.resolvedConfiguration.resolvedArtifacts.forEach { dep ->
             if (this.excludeModules.get().contains("${dep.moduleVersion.id.group}:${dep.name}")) {
                 // do not unpack
             } else {
+                /*
                 LOGGER.debug("unpacking ${dep.name}")
                 val dn = dep.name.substringBeforeLast("-")
                 val tgtName = moduleNameMap.get().get("${dep.moduleVersion.id.group}:${dep.name}") ?: "${dep.moduleVersion.id.group}-${dn}"
@@ -117,6 +120,7 @@ open class UnpackJsModulesTask : DefaultTask() {
                     val mainFileName = "$tgtName.js"
                     GeneratePackageJsonTask.readOrCreatePackageJson(packageJsonFile, moduleId, moduleVersion, mainFileName)
                 }
+                 */
             }
         }
     }

@@ -4,8 +4,8 @@ import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 
 plugins {
-    kotlin("jvm") version ("1.9.0-RC") //version must match version used by gradle, change also in gradle.properties
-    id("com.github.gmazzo.buildconfig") version ("3.1.0")
+    kotlin("jvm") version ("1.9.0") //version must match version used by gradle, change also in gradle.properties
+    id("com.github.gmazzo.buildconfig") version ("4.1.2")
     `java-gradle-plugin`
     `maven-publish`
     signing

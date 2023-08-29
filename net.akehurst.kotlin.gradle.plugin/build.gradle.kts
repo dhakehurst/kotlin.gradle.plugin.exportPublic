@@ -27,7 +27,7 @@ allprojects {
     group = group_project
     version = version_project
 
-    buildDir = File(rootProject.projectDir, ".gradle-build/${project.name}")
+    project.layout.buildDirectory = File(rootProject.projectDir, ".gradle-build/${project.name}")
 
 }
 

@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 
 plugins {
-    kotlin("jvm") version ("1.9.0") //version must match version used by gradle, change also in gradle.properties
+    kotlin("jvm") version ("1.9.10") //version must match version used by gradle, change also in gradle.properties
     id("com.github.gmazzo.buildconfig") version ("4.1.2")
     `java-gradle-plugin`
     `maven-publish`
@@ -45,7 +45,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<org.jetbr
         languageVersion.set(kotlin_languageVersion)
         apiVersion.set(kotlin_apiVersion)
         jvmTarget.set(jvmTargetVersion)
-        freeCompilerArgs.add("-opt-in=org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi")
+        //freeCompilerArgs.add("-opt-in=org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi")
     }
 }
 

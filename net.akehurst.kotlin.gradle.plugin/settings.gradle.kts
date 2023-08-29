@@ -1,3 +1,5 @@
+import org.gradle.internal.jvm.Jvm
+
 /**
  * Copyright (C) 2021 Dr. David H. Akehurst (http://dr.david.h.akehurst.net)
  *
@@ -13,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+println("===============================================")
+println("Gradle: ${GradleVersion.current()}")
+println("JVM: ${Jvm.current()} '${Jvm.current().javaHome}'")
+println("===============================================")
 
 pluginManagement {
     repositories {

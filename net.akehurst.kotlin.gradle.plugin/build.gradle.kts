@@ -28,7 +28,6 @@ allprojects {
     version = version_project
 
     project.layout.buildDirectory = File(rootProject.projectDir, ".gradle-build/${project.name}")
-
 }
 
 fun getProjectProperty(s: String) = project.findProperty(s) as String?

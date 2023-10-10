@@ -4,13 +4,13 @@ import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 
 plugins {
-    kotlin("jvm") version ("1.9.10") //version must match version used by gradle, change also in gradle.properties
+    kotlin("jvm") version ("1.9.20-Beta2") //version must match version used by gradle, change also in gradle.properties
     id("com.github.gmazzo.buildconfig") version ("4.1.2")
     `java-gradle-plugin`
     `maven-publish`
     signing
     id("com.gradle.plugin-publish") version "1.1.0"
-    kotlin("kapt") version "1.9.10"
+    kotlin("kapt") version "1.9.20-Beta2"
 }
 
 val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9

@@ -579,7 +579,7 @@ class ExportPublicIrGenerationExtension(
             val classClassifier = classifier as? IrClassSymbol ?: return false
             if (!namePredicate(classClassifier.owner.name)) return false
             val parent = classClassifier.owner.parent as? IrPackageFragment ?: return false
-            return parent.packageFqName == pkg
+            return parent.fqName == pkg
         } else return false
     }
 

@@ -22,7 +22,6 @@ import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
-
 class ExportPublicIrGenerationExtension(
     private val messageCollector: MessageCollector,
     private val exportPatterns: List<String>

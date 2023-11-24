@@ -93,7 +93,7 @@ class ExportPublicCommandLineProcessor : CommandLineProcessor {
 }
 
 @AutoService(CompilerPluginRegistrar::class)
-class KotlinxReflectComponentRegistrar(
+class ExportPublicComponentRegistrar(
     private val defaultExportPatterns: List<String>
 ) : CompilerPluginRegistrar() {
 

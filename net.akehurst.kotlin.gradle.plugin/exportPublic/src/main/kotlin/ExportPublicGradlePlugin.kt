@@ -102,7 +102,7 @@ class ExportPublicComponentRegistrar(
         defaultExportPatterns = emptyList()
     )
 
-    override val supportsK2: Boolean get() = TODO("not implemented")
+    override val supportsK2: Boolean get() = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         val messageCollector = configuration[CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY]!!//, MessageCollector.NONE)

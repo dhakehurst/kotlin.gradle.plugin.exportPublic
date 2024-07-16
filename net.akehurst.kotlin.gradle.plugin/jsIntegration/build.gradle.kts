@@ -5,15 +5,15 @@ import java.time.ZoneId
 
 plugins {
     kotlin("jvm")  //version must match version used by gradle, change also in gradle.properties
-    id("com.github.gmazzo.buildconfig") version ("4.1.2")
+    id("com.github.gmazzo.buildconfig") version ("4.2.0")
     `java-gradle-plugin`
     `maven-publish`
     signing
     id("com.gradle.plugin-publish") version "1.1.0"
 }
 
-val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
-val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 val jvmTargetVersion = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 
 java {

@@ -98,7 +98,8 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
         }
 
         project.gradle.projectsEvaluated {
-            if (ext.nodeSrcDirectory.isPresent) {
+            if (ext.nodeSrcDirectory.isPresent && ext.nodeOutDirectory.isPresent) {
+                ext.nodeOutDirectory.get().asFile.mkdirs()
                 val nodeSrcDir = project.file(ext.nodeSrcDirectory.get())
                 val nodeOutDir = project.file(ext.nodeOutDirectory.get())
                 val isProduction = ext.production.get()
@@ -110,7 +111,7 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                 val kotlinYarnSetup = project.yarn.yarnSetupTaskProvider.get()
                 val prodCommand = ext.productionCommand.get().split(Regex("\\s+")).toTypedArray()
                 val devCommand = ext.developmentCommand.get().split(Regex("\\s+")).toTypedArray()
-                kotlinYarnSetup.setup()
+                kotlinYarnSetup.exec()
                 val yarn = kotlinYarnSetup.destination.resolve("bin/yarn")
                 // use yarn to install the node_modules required by the node code
                 val yarnInstallAllTask = project.tasks.create("yarnInstallAll", Exec::class.java) { exec ->
@@ -132,6 +133,8 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                         exec.commandLine(yarn,*devCommand)
                     }
                 }
+            } else {
+                println("nodeSrcDirectory && nodeOutDirectory must both be defined")
             }
         }
     }

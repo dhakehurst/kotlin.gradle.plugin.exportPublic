@@ -1,7 +1,9 @@
+
 package test.exportPublic
 
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import kotlin.jvm.JvmInline
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
@@ -140,6 +142,13 @@ fun WithTypeParameter<*>.functionWithNonExportableExtensionReceiverParameter():B
 fun functionWithNonExportableParameter(cls:WithTypeParameter<*>):Boolean {
     TODO()
 }
+
+@JvmInline
+value class ValueClass(val value:Int)
+
+class WithVClsConstructor(
+    val vc:ValueClass
+)
 
 //-----------------------------------
 interface ExportableMap<K, V> {

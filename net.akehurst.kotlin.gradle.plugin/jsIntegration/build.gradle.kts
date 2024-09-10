@@ -1,11 +1,12 @@
-import com.github.gmazzo.gradle.plugins.BuildConfigExtension
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 
 plugins {
-    kotlin("jvm")  //version must match version used by gradle, change also in gradle.properties
-    id("com.github.gmazzo.buildconfig") version ("4.2.0")
+    alias(libs.plugins.kotlin) apply true
+    alias(libs.plugins.dokka) apply true
+    alias(libs.plugins.buildconfig) apply true
+    alias(libs.plugins.credentials) apply true
     `java-gradle-plugin`
     `maven-publish`
     signing
@@ -21,7 +22,7 @@ java {
         languageVersion.set(JavaLanguageVersion.of(8))
     }
 }
-configure<com.github.gmazzo.gradle.plugins.BuildConfigExtension> {
+buildConfig {
     val now = Instant.now()
     fun fBbuildStamp(): String = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")).format(now)
     fun fBuildDate(): String = DateTimeFormatter.ofPattern("yyyy-MMM-dd").withZone(ZoneId.of("UTC")).format(now)
@@ -33,11 +34,10 @@ configure<com.github.gmazzo.gradle.plugins.BuildConfigExtension> {
     buildConfigField("String", "buildTime", "\"${fBuildTime()}\"")
 }
 
-val version_kotlin:String by project
 dependencies {
     implementation(kotlin("gradle-plugin-api"))
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$version_kotlin") //version must match version used by gradle
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation(libs.kotlin.gradle.plugin)
+    implementation(libs.kotlinx.serialization.json)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompilerOptions>>().configureEach {

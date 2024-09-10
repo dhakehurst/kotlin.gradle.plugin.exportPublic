@@ -1,11 +1,14 @@
-import com.github.gmazzo.gradle.plugins.BuildConfigExtension
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 
 plugins {
-    kotlin("jvm")  //version must match version used by gradle, change also in gradle.properties
-    id("com.github.gmazzo.buildconfig") version ("4.1.2")
+    alias(libs.plugins.kotlin) apply true
+    alias(libs.plugins.dokka) apply true
+    alias(libs.plugins.buildconfig) apply true
+    alias(libs.plugins.credentials) apply true
+    //kotlin("jvm")  //version must match version used by gradle, change also in gradle.properties
+    //id("com.github.gmazzo.buildconfig") version ("4.1.2")
     `java-gradle-plugin`
     `maven-publish`
     signing
@@ -22,7 +25,7 @@ java {
         languageVersion.set(JavaLanguageVersion.of(8))
     }
 }
-configure<com.github.gmazzo.gradle.plugins.BuildConfigExtension> {
+buildConfig {
     val now = Instant.now()
     fun fBbuildStamp(): String = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")).format(now)
     fun fBuildDate(): String = DateTimeFormatter.ofPattern("yyyy-MMM-dd").withZone(ZoneId.of("UTC")).format(now)
@@ -70,8 +73,8 @@ gradlePlugin {
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable")
     implementation(kotlin("gradle-plugin-api"))
-    compileOnly("com.google.auto.service:auto-service:1.0.1")
-    kapt("com.google.auto.service:auto-service:1.0.1")
+    compileOnly("com.google.auto.service:auto-service:1.1.1")
+    kapt("com.google.auto.service:auto-service:1.1.1")
     "implementation"(kotlin("test-junit"))
 }
 

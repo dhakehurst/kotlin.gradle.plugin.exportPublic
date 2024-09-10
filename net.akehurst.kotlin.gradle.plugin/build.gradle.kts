@@ -16,16 +16,14 @@
 
 
 plugins {
-    kotlin("multiplatform") version ("2.0.20-Beta1") apply false
+    alias(libs.plugins.kotlin) apply false
+    alias(libs.plugins.dokka) apply false
+    alias(libs.plugins.credentials) apply false
 }
 
 allprojects {
-
-    val version_project: String by project
-    val group_project = rootProject.name
-
-    group = group_project
-    version = version_project
+    group = rootProject.name
+    version = "2.0.20"
 
     project.layout.buildDirectory = File(rootProject.projectDir, ".gradle-build/${project.name}")
 }

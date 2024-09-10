@@ -49,7 +49,7 @@ class ExportPublicIrGenerationExtension(
 
         messageCollector.report(
             CompilerMessageSeverity.INFO,
-            "Exporting declarations from that match one of: ${exportPatterns.map { "'$it'" }}"
+            "Exporting declarations that match one of: ${exportPatterns.map { "'$it'" }}"
         )
         messageCollector.report(
             CompilerMessageSeverity.LOGGING,
@@ -109,21 +109,30 @@ class ExportPublicIrGenerationExtension(
                             { noPatternsOrMatchesOn(declaration.kotlinFqName.asString(), exportPatternsRegex).not() },
                             { "$msg it is not matched by the glob filter" }) -> super.visitClass(declaration)
 
-                        checkIfStrong({ declaration.isExpect }, { "$msg it is an 'expect' class" }) -> super.visitClass(
-                            declaration
-                        )
+                        checkIfStrong(
+                            { declaration.isExpect },
+                            { "$msg it is an 'expect' class" }) -> super.visitClass(declaration)
 
                         checkIfStrong(
                             { declaration.isExternal },
                             { "$msg it is an 'external' class" }) -> super.visitClass(declaration)
 
                         checkIfStrong(
+                            { declaration.isValue },
+                            { "$msg it is an 'external' class" }) -> super.visitClass(declaration)
+
+                        checkIfStrong(
                             { declaration.isAnnotationClass },
                             { "$msg it is an annotation class" }) -> super.visitClass(declaration)
 
-                        checkIfStrong({ declaration.nonExportableSuperTypes.isNotEmpty() },
+                        checkIfStrong(
+                            { declaration.nonExportableSuperTypes.isNotEmpty() },
                             { "$msg it has superTypes that are not exportable ${declaration.nonExportableSuperTypes.asLineSeparatedString}" })
                         -> super.visitClass(declaration)
+
+                        checkIfStrong({ declaration.nonExportableProperties.isNotEmpty() },
+                            { "$msg it has constructors that are not exportable ${declaration.nonExportableConstructors.asLineSeparatedString}" })
+                            -> super.visitClass(declaration)
 
                         checkIfStrong({ declaration.nonExportableProperties.isNotEmpty() },
                             { "$msg it has properties that are not exportable ${declaration.nonExportableProperties.asLineSeparatedString}" })
@@ -339,14 +348,15 @@ class ExportPublicIrGenerationExtension(
     private val IrFunction.isExportable: Boolean
         get() = try {
             when {
+                this.isPublic.not() -> false
                 this.isExpect -> false
                 this.isExternal -> false
                 this.isInline -> false
                 //this.isSuspend -> false
-                //this.returnType.isExportable.not() -> false
+                this.returnType.isExportable.not() -> false
                 null != this.dispatchReceiverParameter && this.dispatchReceiverParameter!!.type.isExportable.not() -> false
                 null != this.extensionReceiverParameter && this.extensionReceiverParameter!!.type.isExportable.not() -> false
-                else -> true //this.valueParameters.all { it.type.isExportable }
+                else -> this.valueParameters.all { it.type.isExportable }
             }
         } catch (t: Throwable) {
             messageCollector.report(
@@ -378,9 +388,11 @@ class ExportPublicIrGenerationExtension(
                 false -> {
                     exportableCache[this] = true // top stop recursion & stop type from making itself not exportable
                     val exportable = when {
+                        this.isValue -> false
                         this.typeWith().isBuiltInExportable -> true
                         this.isPotentiallyExportable.not() -> false
                         this.nonExportableSuperTypes.isNotEmpty() -> false
+                        this.nonExportableConstructors.isNotEmpty() -> false
                         this.nonExportableProperties.isNotEmpty() -> false
                         this.nonExportableMethods.isNotEmpty() -> false
                         else -> true
@@ -428,6 +440,13 @@ class ExportPublicIrGenerationExtension(
                         throw t
                     }
                 }.toList()
+
+    private val IrClass.nonExportableConstructors: List<IrConstructor>
+        get() = this.constructors
+            .filter { it.isPublic }
+            .filter {
+                it.isExportable.not()
+            }.toList()
 
     private val IrClass.nonExportableMethods: List<IrSimpleFunction>
         get() =

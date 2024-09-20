@@ -39,8 +39,6 @@ open class JsIntegrationGradlePluginExtension(project: Project, objects: ObjectF
      */
     val nodeSrcDirectory = objects.directoryProperty()
 
-    val nodeBuildCommand = objects.listProperty(String::class.java)
-
     /**
      * directory where built code is output default [${project.buildDir}/node]
      */
@@ -63,9 +61,15 @@ open class JsIntegrationGradlePluginExtension(project: Project, objects: ObjectF
      */
     val production = objects.property(Boolean::class.java)
 
-    val productionCommand = objects.property(String::class.java)
+    /**
+     * list of commands to execute if production
+     */
+    val productionCommand = objects.listProperty(String::class.java)
 
-    val developmentCommand = objects.property(String::class.java)
+    /**
+     * list of commands to execute if development
+     */
+    val developmentCommand = objects.listProperty(String::class.java)
 
     init {
         // node build configuration
@@ -73,7 +77,7 @@ open class JsIntegrationGradlePluginExtension(project: Project, objects: ObjectF
         this.nodeOutDirectory.convention(project.layout.buildDirectory.dir("node"))
         this.nodeModulesDirectory.convention(this.nodeSrcDirectory.map { it.dir("node_modules") })
         //this.kotlinStdlibJsDirectory.convention(this.nodeModulesDirectory.map { it.dir("kotlin") })
-        this.nodeBuildCommand.convention(listOf("run", "build", "--outputPath=${this.nodeOutDirectory.get()}/dist"))
+        //this.nodeBuildCommand.convention(listOf("run", "build", "--outputPath=${this.nodeOutDirectory.get()}/dist"))
         this.jsTargetName.convention("js")
         //this.overwrite.convention(true)
         //this.localOnly.convention(true)
@@ -107,10 +111,10 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                     true -> "compileProductionLibraryKotlinJs"  //TODO: construct task name, JS name
                     false -> "compileDevelopmentLibraryKotlinJs"
                 }
-                val cmds = ext.nodeBuildCommand.get()
+
                 val kotlinYarnSetup = project.yarn.yarnSetupTaskProvider.get()
-                val prodCommand = ext.productionCommand.get().split(Regex("\\s+")).toTypedArray()
-                val devCommand = ext.developmentCommand.get().split(Regex("\\s+")).toTypedArray()
+                val prodCommands = ext.productionCommand.get().map { it.split(Regex("\\s+")).toTypedArray() }
+                val devCommands = ext.developmentCommand.get().map { it.split(Regex("\\s+")).toTypedArray() }
                 kotlinYarnSetup.exec()
                 val yarn = kotlinYarnSetup.destination.resolve("bin/yarn")
                 // use yarn to install the node_modules required by the node code
@@ -122,19 +126,40 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                     val args = listOf(yarn, "add", "all", "--outputPath=${nodeOutDir}")
                     exec.commandLine(args)
                 }
-                project.tasks.create("jsIntegrationBuild", Exec::class.java) { exec ->
-                    exec.group = "nodejs"
-                    exec.dependsOn(":kotlinNodeJsSetup")
-                    exec.dependsOn(yarnInstallAllTask)
-                    exec.workingDir = nodeSrcDir
-                    if (isProduction) {
-                        exec.commandLine(yarn,*prodCommand)
-                    } else {
-                        exec.commandLine(yarn,*devCommand)
+
+                val prodTaskDeps = mutableListOf<String>(":kotlinNodeJsSetup","yarnInstallAll" )
+                prodCommands.forEachIndexed { idx, cmd ->
+                    val taskName = "jsIntegrationBuildProduction_$idx"
+                    project.tasks.create(taskName, Exec::class.java) { exec ->
+                        exec.group = "nodejs"
+                        prodTaskDeps.forEach { exec.dependsOn(it) }
+                        //exec.dependsOn(":kotlinNodeJsSetup")
+                        //exec.dependsOn(yarnInstallAllTask)
+                        exec.workingDir = nodeSrcDir
+
+                        project.logger.warn("Executing: $cmd")
+                        exec.commandLine(yarn, *cmd)
                     }
+                    prodTaskDeps.add(taskName)
+                }
+
+                val devTaskDeps = mutableListOf<String>(":kotlinNodeJsSetup","yarnInstallAll" )
+                devCommands.forEachIndexed { idx, cmd ->
+                    val taskName = "jsIntegrationBuildDevelopment_$idx"
+                    project.tasks.create(taskName, Exec::class.java) { exec ->
+                        exec.group = "nodejs"
+                        devTaskDeps.forEach { exec.dependsOn(it) }
+                       // exec.dependsOn(":kotlinNodeJsSetup")
+                        //exec.dependsOn(yarnInstallAllTask)
+                        exec.workingDir = nodeSrcDir
+
+                        project.logger.warn("Executing: $cmd")
+                        exec.commandLine(yarn, *cmd)
+                    }
+                    devTaskDeps.add(taskName)
                 }
             } else {
-                println("nodeSrcDirectory && nodeOutDirectory must both be defined")
+                project.logger.error("nodeSrcDirectory && nodeOutDirectory must both be defined")
             }
         }
     }

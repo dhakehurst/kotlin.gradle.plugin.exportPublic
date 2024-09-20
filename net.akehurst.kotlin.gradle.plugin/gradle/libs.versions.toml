@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.0.20"
 dokka = "1.9.20"
-buildconfig = "5.4.0"
+buildconfig = "5.5.0"
 credentials = "3.0"
 
 ksj = "1.7.1"

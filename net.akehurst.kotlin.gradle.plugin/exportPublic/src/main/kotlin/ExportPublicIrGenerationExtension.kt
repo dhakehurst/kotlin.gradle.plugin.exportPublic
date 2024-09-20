@@ -119,7 +119,7 @@ class ExportPublicIrGenerationExtension(
 
                         checkIfStrong(
                             { declaration.isValue },
-                            { "$msg it is an 'external' class" }) -> super.visitClass(declaration)
+                            { "$msg it is a 'value' class" }) -> super.visitClass(declaration)
 
                         checkIfStrong(
                             { declaration.isAnnotationClass },

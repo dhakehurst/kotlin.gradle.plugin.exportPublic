@@ -7,12 +7,10 @@ plugins {
     alias(libs.plugins.dokka) apply true
     alias(libs.plugins.buildconfig) apply true
     alias(libs.plugins.credentials) apply true
-    //kotlin("jvm")  //version must match version used by gradle, change also in gradle.properties
-    //id("com.github.gmazzo.buildconfig") version ("4.1.2")
     `java-gradle-plugin`
     `maven-publish`
     signing
-    id("com.gradle.plugin-publish") version "1.1.0"
+    id("com.gradle.plugin-publish") version "1.3.0"
     kotlin("kapt")
 }
 

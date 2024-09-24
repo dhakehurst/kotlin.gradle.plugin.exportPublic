@@ -130,7 +130,7 @@ class ExportPublicIrGenerationExtension(
                             { "$msg it has superTypes that are not exportable ${declaration.nonExportableSuperTypes.asLineSeparatedString}" })
                         -> super.visitClass(declaration)
 
-                        checkIfStrong({ declaration.nonExportableProperties.isNotEmpty() },
+                        checkIfStrong({ declaration.nonExportableConstructors.isNotEmpty() },
                             { "$msg it has constructors that are not exportable ${declaration.nonExportableConstructors.asLineSeparatedString}" })
                             -> super.visitClass(declaration)
 
@@ -334,7 +334,7 @@ class ExportPublicIrGenerationExtension(
                 this.isExternal -> false
                 null != this.getter?.dispatchReceiverParameter && this.getter?.dispatchReceiverParameter!!.type.isExportable.not() -> false
                 null != this.getter?.extensionReceiverParameter && this.getter?.extensionReceiverParameter!!.type.isExportable.not() -> false
-                else -> this.type.isExportable
+                else -> true //this.type.isExportable
             }
         } catch (t: Throwable) {
             messageCollector.report(

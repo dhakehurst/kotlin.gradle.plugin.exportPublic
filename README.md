@@ -16,7 +16,20 @@ This plugin make that happen.
 
 ```
 plugins {
-    id("net.akehurst.kotlin.gradle.plugin.exportPublic") version("1.0.0")
+    id("net.akehurst.kotlin.gradle.plugin.exportPublic") version("<latest version>")
 }
 ```
 
+By default it exports all public declarations.
+To limit this add some configuration
+
+```
+exportPublic {
+    exportPatterns.set(
+        listOf(
+            "<qualified name glob>",
+            "some.package.name.**"
+        )
+    )
+}
+```

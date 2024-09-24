@@ -23,7 +23,7 @@ plugins {
 
 allprojects {
     group = rootProject.name
-    version = "2.0.20"
+    version = rootProject.libs.versions.project.get()
 
     project.layout.buildDirectory = File(rootProject.projectDir, ".gradle-build/${project.name}")
 }

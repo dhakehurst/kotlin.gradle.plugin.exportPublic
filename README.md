@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.com/dhakehurst/net.akehurst.kotlin.export-public.svg?branch=master)](https://travis-ci.com/dhakehurst/net.akehurst.kotlin.export-public)
-[![Gradle Plugin Portal](https://img.shields.io/maven-metadata/v/https/plugins.gradle.org/m2/net/akehurst/kotlin/gradle/plugin/export-public/maven-metadata.xml.svg?colorB=007ec6&label=gradle%20plugin)](https://plugins.gradle.org/plugin/net.akehurst.kotlin.gradle.plugin.exportPublic)
+[![Gradle Plugin Portal](https://img.shields.io/maven-metadata/v/https/plugins.gradle.org/m2/net/akehurst/kotlin/gradle/plugin/exportPublic/maven-metadata.xml.svg?colorB=007ec6&label=gradle%20plugin)](https://plugins.gradle.org/plugin/net.akehurst.kotlin.gradle.plugin.exportPublic)
 
 # net.akehurst.kotlin.gradle.plugin
 - exportPublic

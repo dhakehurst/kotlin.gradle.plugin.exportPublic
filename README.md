@@ -33,3 +33,14 @@ exportPublic {
     )
 }
 ```
+
+This is a kotlin compiler plugin, published as a gradle-plugin, thus the gradlePluginPortal
+must be added as a repository in order for dependencies to be resolved.
+
+```
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+    ...
+}
+```

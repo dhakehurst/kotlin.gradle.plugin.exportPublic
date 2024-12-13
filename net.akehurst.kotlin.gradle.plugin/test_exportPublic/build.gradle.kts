@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 
 plugins {
-    kotlin("multiplatform")
-    id("net.akehurst.kotlin.gradle.plugin.exportPublic") version("2.0.20")
+    alias(libs.plugins.kotlin)
+    id("net.akehurst.kotlin.gradle.plugin.exportPublic") version("2.1.0")
 }
-val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
-val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
+val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
 val jvmTargetVersion = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 
 kotlin {

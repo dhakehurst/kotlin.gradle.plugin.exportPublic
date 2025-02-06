@@ -16,22 +16,14 @@
 
 
 plugins {
-    alias(libs.plugins.kotlin) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.dokka) apply false
+    alias(libs.plugins.buildconfig) apply false
     alias(libs.plugins.credentials) apply false
+    alias(libs.plugins.kotlin.kapt) apply false
 }
 
 allprojects {
-    group = rootProject.name
-    version = rootProject.libs.versions.project.get()
-
-    project.layout.buildDirectory = File(rootProject.projectDir, ".gradle-build/${project.name}")
-}
-
-fun getProjectProperty(s: String) = project.findProperty(s) as String?
-
-
-subprojects {
 
     repositories {
         mavenCentral()
@@ -42,5 +34,11 @@ subprojects {
         }
     }
 
+    group = rootProject.name
+    version = rootProject.libs.versions.project.get()
 
+    project.layout.buildDirectory = File(rootProject.projectDir, ".gradle-build/${project.name}")
 }
+
+fun getProjectProperty(s: String) = project.findProperty(s) as String?
+

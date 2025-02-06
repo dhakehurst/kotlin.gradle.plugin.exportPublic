@@ -3,7 +3,7 @@ import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 
 plugins {
-    alias(libs.plugins.kotlin) apply true
+    alias(libs.plugins.kotlin.jvm) apply true
     alias(libs.plugins.dokka) apply true
     alias(libs.plugins.buildconfig) apply true
     alias(libs.plugins.credentials) apply true
@@ -11,7 +11,7 @@ plugins {
     `maven-publish`
     signing
     id("com.gradle.plugin-publish") version "1.3.0"
-    kotlin("kapt")
+    alias(libs.plugins.kotlin.kapt) apply true
 }
 
 val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1

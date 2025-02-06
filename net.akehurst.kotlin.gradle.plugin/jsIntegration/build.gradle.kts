@@ -3,7 +3,7 @@ import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 
 plugins {
-    alias(libs.plugins.kotlin) apply true
+    alias(libs.plugins.kotlin.jvm) apply true
     alias(libs.plugins.dokka) apply true
     alias(libs.plugins.buildconfig) apply true
     alias(libs.plugins.credentials) apply true

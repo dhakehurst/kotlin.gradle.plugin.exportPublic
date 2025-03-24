@@ -23,6 +23,15 @@ java {
         languageVersion.set(JavaLanguageVersion.of(8))
     }
 }
+
+dependencies {
+    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable")
+    implementation(kotlin("gradle-plugin-api"))
+    compileOnly("com.google.auto.service:auto-service:1.1.1")
+    kapt("com.google.auto.service:auto-service:1.1.1")
+    "implementation"(kotlin("test-junit"))
+}
+
 buildConfig {
     val now = Instant.now()
     fun fBbuildStamp(): String = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")).format(now)
@@ -65,15 +74,6 @@ gradlePlugin {
             tags.set(listOf("JsExport", "kotlin", "javascript", "typescript", "kotlin-js", "kotlin-multiplatform"))
         }
     }
-}
-
-
-dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable")
-    implementation(kotlin("gradle-plugin-api"))
-    compileOnly("com.google.auto.service:auto-service:1.1.1")
-    kapt("com.google.auto.service:auto-service:1.1.1")
-    "implementation"(kotlin("test-junit"))
 }
 
 configure<SigningExtension> {

@@ -19,9 +19,11 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.buildconfig) apply false
-    alias(libs.plugins.credentials) apply false
+    alias(libs.plugins.credentials) apply true
     alias(libs.plugins.kotlin.kapt) apply false
 }
+
+fun getProjectProperty(s: String) = project.findProperty(s) as String?
 
 allprojects {
 
@@ -35,10 +37,31 @@ allprojects {
     }
 
     group = rootProject.name
-    version = rootProject.libs.versions.project.get()
+    version = getProjectProperty("PUB_VERSION") ?: rootProject.libs.versions.project.get()
 
     project.layout.buildDirectory = File(rootProject.projectDir, ".gradle-build/${project.name}")
 }
 
-fun getProjectProperty(s: String) = project.findProperty(s) as String?
 
+subprojects {
+
+    apply(plugin = "maven-publish")
+
+    val creds = project.properties["credentials"] as nu.studer.gradle.credentials.domain.CredentialsContainer
+    println("UN: "+getProjectProperty("PUB_PASSWORD"))
+    println("PW: "+creds.forKey(getProjectProperty("PUB_USERNAME")))
+    configure<PublishingExtension> {
+        repositories {
+                maven {
+                    name = "Other"
+                    setUrl(getProjectProperty("PUB_URL")?: "<use -P PUB_URL=<...> to set>")
+                    credentials {
+                        username = getProjectProperty("PUB_USERNAME")
+                            ?: error("Must set project property with Username (-P PUB_USERNAME=<...> or set in ~/.gradle/gradle.properties)")
+                        password = getProjectProperty("PUB_PASSWORD")?: creds.forKey(getProjectProperty("PUB_USERNAME"))
+                    }
+                }
+        }
+
+    }
+}

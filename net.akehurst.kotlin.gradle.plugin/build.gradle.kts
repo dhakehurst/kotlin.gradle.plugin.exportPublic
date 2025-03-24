@@ -48,8 +48,6 @@ subprojects {
     apply(plugin = "maven-publish")
 
     val creds = project.properties["credentials"] as nu.studer.gradle.credentials.domain.CredentialsContainer
-    println("UN: "+getProjectProperty("PUB_PASSWORD"))
-    println("PW: "+creds.forKey(getProjectProperty("PUB_USERNAME")))
     configure<PublishingExtension> {
         repositories {
                 maven {

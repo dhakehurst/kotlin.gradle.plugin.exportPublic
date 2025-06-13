@@ -1,12 +1,12 @@
 [versions]
-project = "2.1.20"
+project = "2.1.21"
 
-kotlin = "2.1.20"
+kotlin = "2.1.21"
 dokka = "2.0.0"
 buildconfig = "5.5.1"
 credentials = "3.0"
 
-ksj = "1.8.0"
+ksj = "1.8.1"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

@@ -13,8 +13,8 @@ plugins {
     id("com.gradle.plugin-publish") version "1.1.0"
 }
 
-val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
-val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
+val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
 val jvmTargetVersion = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 
 java {
@@ -63,8 +63,40 @@ gradlePlugin {
     }
 }
 
+fun getProjectProperty(s: String) = project.findProperty(s) as String?
+val creds = project.properties["credentials"] as nu.studer.gradle.credentials.domain.CredentialsContainer
+val sonatype_pwd = creds.forKey("SONATYPE_PASSWORD")
+    ?: getProjectProperty("SONATYPE_PASSWORD")
+    ?: error("Must set project property with Sonatype Password (-P SONATYPE_PASSWORD=<...> or set in ~/.gradle/gradle.properties)")
+project.ext.set("signing.password", sonatype_pwd)
+
+configure<PublishingExtension> {
+    repositories {
+        maven {
+            name = "Other"
+            setUrl(getProjectProperty("PUB_URL") ?: "<use -P PUB_URL=<...> to set>")
+            credentials {
+                username = getProjectProperty("PUB_USERNAME")
+                    ?: error("Must set project property with Username (-P PUB_USERNAME=<...> or set in ~/.gradle/gradle.properties)")
+                password = getProjectProperty("PUB_PASSWORD") ?: creds.forKey(getProjectProperty("PUB_USERNAME"))
+            }
+        }
+    }
+}
+
 configure<SigningExtension> {
     useGpgCmd()
     val publishing = project.properties["publishing"] as PublishingExtension
     sign(publishing.publications)
+}
+
+tasks.named {
+    it=="publishJsIntegrationPluginMarkerMavenPublicationToSonatypeRepository"
+}.configureEach {
+    dependsOn("signPluginMavenPublication", "signJsIntegrationPluginMarkerMavenPublication")
+}
+tasks.named {
+    it=="publishPluginMavenPublicationToSonatypeRepository"
+}.configureEach {
+    dependsOn( "signJsIntegrationPluginMarkerMavenPublication")
 }

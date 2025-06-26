@@ -110,7 +110,7 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
 
             val kotlinYarnSetup = project.yarn.yarnSetupTaskProvider.get()
             kotlinYarnSetup.exec()
-            val yarn = kotlinYarnSetup.destination.resolve("bin/yarn")
+            val yarn = kotlinYarnSetup.destinationProvider.asFile.get().resolve("bin/yarn")
 
             val isProduction = ext.production.get()
             val compileTaskName = when (isProduction) {

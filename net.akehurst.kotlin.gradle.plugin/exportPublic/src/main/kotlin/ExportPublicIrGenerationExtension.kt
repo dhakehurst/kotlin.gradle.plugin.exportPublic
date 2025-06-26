@@ -221,13 +221,12 @@ class ExportPublicIrGenerationExtension(
                         )
 
                         checkIfStrong(
-                            { null != declaration.extensionReceiverParameter && declaration.extensionReceiverParameter!!.type.isExportable.not() },
-                            { "$msg it has a non-exportable extension receiver parameter" }) -> super.visitFunction(
-                            declaration
-                        )
+                            //{ null != declaration.extensionReceiverParameter && declaration.extensionReceiverParameter!!.type.isExportable.not() },
+                            { declaration.hasShape(extensionReceiver = true) && declaration.parameters.first { it.kind== IrParameterKind.ExtensionReceiver}.type.isExportable.not() },
+                            { "$msg it has a non-exportable extension receiver parameter" }) -> super.visitFunction(declaration)
 
                         checkIfStrong(
-                            { declaration.valueParameters.all { it.type.isExportable }.not() },
+                            { declaration.parameters.all { it.type.isExportable }.not() },
                             { "$msg it has a non-exportable parameter" }) -> super.visitFunction(declaration)
 
                         else -> {
@@ -335,7 +334,8 @@ class ExportPublicIrGenerationExtension(
                 this.isExpect -> false
                 this.isExternal -> false
                 null != this.getter?.dispatchReceiverParameter && this.getter?.dispatchReceiverParameter!!.type.isExportable.not() -> false
-                null != this.getter?.extensionReceiverParameter && this.getter?.extensionReceiverParameter!!.type.isExportable.not() -> false
+//                null != this.getter?.extensionReceiverParameter && this.getter?.extensionReceiverParameter!!.type.isExportable.not() -> false
+                true==this.getter?.hasShape(extensionReceiver = true) && true == this.getter?.parameters?.first{it.kind== IrParameterKind.ExtensionReceiver }?.type?.isExportable?.not() -> false
                 else -> true //this.type.isExportable
             }
         } catch (t: Throwable) {
@@ -357,8 +357,9 @@ class ExportPublicIrGenerationExtension(
                 //this.isSuspend -> false
                 this.returnType.isExportable.not() -> false
                 null != this.dispatchReceiverParameter && this.dispatchReceiverParameter!!.type.isExportable.not() -> false
-                null != this.extensionReceiverParameter && this.extensionReceiverParameter!!.type.isExportable.not() -> false
-                else -> this.valueParameters.all { it.type.isExportable }
+                //null != this.extensionReceiverParameter && this.extensionReceiverParameter!!.type.isExportable.not() -> false
+                this.hasShape(extensionReceiver = true) && this.parameters.first{it.kind== IrParameterKind.ExtensionReceiver }.type.isExportable.not() -> false
+                else -> this.parameters.all { it.type.isExportable }
             }
         } catch (t: Throwable) {
             messageCollector.report(
@@ -563,7 +564,7 @@ class ExportPublicIrGenerationExtension(
             is IrFunction -> {
                 val owner = this.realOverrideTarget.parent.kotlinFqName
                 val fname = this.name.asString()
-                val params = this.valueParameters.joinToString {
+                val params = this.parameters.joinToString {
                     val pn = it.name.asString()
                     val pt = it.type.signatureString
                     val pnl = if (it.type.isNullable()) "?" else ""

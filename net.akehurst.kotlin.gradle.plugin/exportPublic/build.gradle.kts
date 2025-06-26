@@ -1,3 +1,11 @@
+// *************************************************
+//
+// NOTE: This is a kotlin compiler plugin and needs
+// to be published to a maven repo as well as
+// the gradle plugin portal (i.e. mavenCentral)
+//
+// *************************************************
+
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
@@ -14,8 +22,8 @@ plugins {
     alias(libs.plugins.kotlin.kapt) apply true
 }
 
-val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
-val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
+val kotlin_languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+val kotlin_apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
 val jvmTargetVersion = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 
 java {
@@ -76,8 +84,73 @@ gradlePlugin {
     }
 }
 
+fun getProjectProperty(s: String) = project.findProperty(s) as String?
+val creds = project.properties["credentials"] as nu.studer.gradle.credentials.domain.CredentialsContainer
+val sonatype_pwd = creds.forKey("SONATYPE_PASSWORD")
+    ?: getProjectProperty("SONATYPE_PASSWORD")
+    ?: error("Must set project property with Sonatype Password (-P SONATYPE_PASSWORD=<...> or set in ~/.gradle/gradle.properties)")
+project.ext.set("signing.password", sonatype_pwd)
+
+configure<PublishingExtension> {
+    repositories {
+        maven {
+            name = "sonatype"
+            setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+            credentials {
+                username = getProjectProperty("SONATYPE_USERNAME")
+                    ?: error("Must set project property with Sonatype Username (-P SONATYPE_USERNAME=<...> or set in ~/.gradle/gradle.properties)")
+                password = sonatype_pwd
+            }
+        }
+        maven {
+            name = "Other"
+            setUrl(getProjectProperty("PUB_URL") ?: "<use -P PUB_URL=<...> to set>")
+            credentials {
+                username = getProjectProperty("PUB_USERNAME")
+                    ?: error("Must set project property with Username (-P PUB_USERNAME=<...> or set in ~/.gradle/gradle.properties)")
+                password = getProjectProperty("PUB_PASSWORD") ?: creds.forKey(getProjectProperty("PUB_USERNAME"))
+            }
+        }
+    }
+    publications.withType<MavenPublication> {
+        pom {
+            name.set("Export Public Declarations")
+            description.set("Kotlin compiler plugin to export all public declarations")
+            url.set("https://github.com/dhakehurst/kotlin.gradle.plugin.exportPublic")
+
+            licenses {
+                license {
+                    name.set("The Apache License, Version 2.0")
+                    url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                }
+            }
+            developers {
+                developer {
+                    name.set("Dr. David H. Akehurst")
+                    email.set("dr.david.h@akehurst.net")
+                }
+            }
+            scm {
+                url.set("https://github.com/dhakehurst/kotlin.gradle.plugin.exportPublic")
+            }
+        }
+    }
+}
+
 configure<SigningExtension> {
     useGpgCmd()
     val publishing = project.properties["publishing"] as PublishingExtension
     sign(publishing.publications)
+}
+
+
+tasks.named {
+    it=="publishExportPublicPluginMarkerMavenPublicationToSonatypeRepository"
+}.configureEach {
+    dependsOn("signPluginMavenPublication", "signExportPublicPluginMarkerMavenPublication")
+}
+tasks.named {
+    it=="publishPluginMavenPublicationToSonatypeRepository"
+}.configureEach {
+    dependsOn( "signExportPublicPluginMarkerMavenPublication")
 }

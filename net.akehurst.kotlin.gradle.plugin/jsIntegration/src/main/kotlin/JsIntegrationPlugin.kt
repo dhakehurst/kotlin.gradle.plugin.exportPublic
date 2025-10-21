@@ -109,7 +109,7 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
             val devCommands = ext.developmentCommand.get().entries.associate { (k, v) -> Pair(k, v.split(Regex("\\s+")).toTypedArray()) }
 
             val kotlinYarnSetup = project.yarn.yarnSetupTaskProvider.get()
-            kotlinYarnSetup.exec()
+           // kotlinYarnSetup.exec()
             val yarn = kotlinYarnSetup.destinationProvider.asFile.get().resolve("bin/yarn")
 
             val isProduction = ext.production.get()
@@ -124,8 +124,8 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                 val nodeOutDirProd = project.file(ext.nodeOutDirectoryProd.get())
 
                 // use yarn to install the node_modules required by the node code
-                val yarnInstallAllTaskProd = project.tasks.create("yarnInstallAllProd", Exec::class.java) { exec ->
-                    exec.dependsOn(nodeKotlinConfig, compileTaskName)
+                val yarnInstallAllTaskProd = project.tasks.register("yarnInstallAllProd", Exec::class.java) { exec ->
+                    exec.dependsOn(kotlinYarnSetup,nodeKotlinConfig, compileTaskName)
                     exec.group = "nodejs"
                     //exec.dependsOn(NodeJsSetupTask.NAME, YarnSetupTask.NAME)
                     exec.workingDir = nodeSrcDirProd
@@ -137,14 +137,14 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                 val prodTaskDeps = mutableListOf<String>(":kotlinNodeJsSetup", "yarnInstallAllProd")
                 prodCommands.entries.forEachIndexed { idx, (name, cmd) ->
                     val taskName = "${name}_jsIntegrationBuildProduction"
-                    project.tasks.create(taskName, Exec::class.java) { exec ->
+                    project.tasks.register(taskName, Exec::class.java) { exec ->
                         exec.group = "nodejs"
                         prodTaskDeps.forEach { exec.dependsOn(it) }
                         exec.workingDir = nodeSrcDirProd
                         project.logger.warn("Executing: $cmd")
                         exec.commandLine(yarn, *cmd)
                     }
-                    prodTaskDeps.add(taskName)
+                    //prodTaskDeps.add(taskName)
                 }
 
             } else {
@@ -156,8 +156,8 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                 val nodeSrcDirDev = project.file(ext.nodeSrcDirectoryDev.get())
                 val nodeOutDirDev = project.file(ext.nodeOutDirectoryDev.get())
 
-                val yarnInstallAllTaskDev = project.tasks.create("yarnInstallAllDev", Exec::class.java) { exec ->
-                    exec.dependsOn(nodeKotlinConfig, compileTaskName)
+                val yarnInstallAllTaskDev = project.tasks.register("yarnInstallAllDev", Exec::class.java) { exec ->
+                    exec.dependsOn(kotlinYarnSetup,nodeKotlinConfig, compileTaskName)
                     exec.group = "nodejs"
                     //exec.dependsOn(NodeJsSetupTask.NAME, YarnSetupTask.NAME)
                     exec.workingDir = nodeSrcDirDev
@@ -168,14 +168,14 @@ open class JsIntegrationGradlePlugin : Plugin<ProjectInternal> {
                 val devTaskDeps = mutableListOf<String>(":kotlinNodeJsSetup", "yarnInstallAllDev")
                 devCommands.entries.forEachIndexed { idx, (name, cmd) ->
                     val taskName = "${name}_jsIntegrationBuildDevelopment"
-                    project.tasks.create(taskName, Exec::class.java) { exec ->
+                    project.tasks.register(taskName, Exec::class.java) { exec ->
                         exec.group = "nodejs"
                         devTaskDeps.forEach { exec.dependsOn(it) }
                         exec.workingDir = nodeSrcDirDev
                         project.logger.warn("Executing: $cmd")
                         exec.commandLine(yarn, *cmd)
                     }
-                    devTaskDeps.add(taskName)
+                    //devTaskDeps.add(taskName)
                 }
             } else {
                 project.logger.error("nodeSrcDirectoryDev && nodeOutDirectoryDev must both be defined")

@@ -1,9 +1,9 @@
 [versions]
-project = "2.2.20-SNAPSHOT"
+project = "2.2.20"
 
 kotlin = "2.2.20"
 dokka = "2.1.0"
-buildconfig = "5.6.7"
+buildconfig = "5.7.0"
 credentials = "3.0"
 
 ksj = "1.9.0"

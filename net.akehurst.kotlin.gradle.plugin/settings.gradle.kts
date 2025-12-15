@@ -22,11 +22,6 @@ println("===============================================")
 
 pluginManagement {
     repositories {
-        mavenLocal {
-            content{
-                includeGroupByRegex("net\\.akehurst.+")
-            }
-        }
         gradlePluginPortal()
     }
 }

@@ -19,7 +19,6 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.buildconfig) apply false
-    alias(libs.plugins.credentials) apply true
     alias(libs.plugins.kotlin.kapt) apply false
 }
 
@@ -29,11 +28,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        mavenLocal {
-            content{
-                includeGroupByRegex("net\\.akehurst.+")
-            }
-        }
     }
 
     group = rootProject.name
@@ -46,6 +40,5 @@ allprojects {
 subprojects {
 
     apply(plugin = "maven-publish")
-
 
 }

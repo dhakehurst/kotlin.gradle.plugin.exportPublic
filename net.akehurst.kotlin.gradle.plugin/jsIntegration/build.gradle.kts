@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply true
     alias(libs.plugins.dokka) apply true
     alias(libs.plugins.buildconfig) apply true
-    alias(libs.plugins.credentials) apply true
     `java-gradle-plugin`
     `maven-publish`
     signing
@@ -64,23 +63,21 @@ gradlePlugin {
 }
 
 fun getProjectProperty(s: String) = project.findProperty(s) as String?
-val creds = project.properties["credentials"] as nu.studer.gradle.credentials.domain.CredentialsContainer
-val sonatype_pwd = creds.forKey("SONATYPE_PASSWORD")
-    ?: getProjectProperty("SONATYPE_PASSWORD")
+val sonatype_pwd =  getProjectProperty("SONATYPE_PASSWORD")
     ?: error("Must set project property with Sonatype Password (-P SONATYPE_PASSWORD=<...> or set in ~/.gradle/gradle.properties)")
 project.ext.set("signing.password", sonatype_pwd)
 
 configure<PublishingExtension> {
     repositories {
-        maven {
-            name = "Other"
-            setUrl(getProjectProperty("PUB_URL") ?: "<use -P PUB_URL=<...> to set>")
-            credentials {
-                username = getProjectProperty("PUB_USERNAME")
-                    ?: error("Must set project property with Username (-P PUB_USERNAME=<...> or set in ~/.gradle/gradle.properties)")
-                password = getProjectProperty("PUB_PASSWORD") ?: creds.forKey(getProjectProperty("PUB_USERNAME"))
-            }
-        }
+//        maven {
+//            name = "Other"
+//            setUrl(getProjectProperty("PUB_URL") ?: "<use -P PUB_URL=<...> to set>")
+//            credentials {
+//                username = getProjectProperty("PUB_USERNAME")
+//                    ?: error("Must set project property with Username (-P PUB_USERNAME=<...> or set in ~/.gradle/gradle.properties)")
+//                password = getProjectProperty("PUB_PASSWORD") ?: error("Must set project property with Sonatype Password (-P PUB_PASSWORD=<...> or set in ~/.gradle/gradle.properties)")
+//            }
+//        }
     }
 }
 
